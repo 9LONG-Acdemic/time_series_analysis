@@ -1,6 +1,6 @@
 # Forecasting the Trajectory of Pneumonia and Influenza Death Rates Post-COVID-19: A Time Series Analysis Using the SARIMA Model 
 
-This is a repo of a project related to time series analysis from my statistics undergraduate course, STA457: Time Series Analysis, at the University of Toronto. The full description of the project can be found in `Final_Project_Winter2022.pdf`.
+This is a repo of a project related to time series analysis from my statistics undergraduate course, STA457: Time Series Analysis, at the University of Toronto. 
 
 ## Project Description
 
