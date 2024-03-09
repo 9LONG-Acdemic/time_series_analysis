@@ -1,0 +1,265 @@
+---
+title: "STA457 Final Assignment"
+author: "Qilong Zeng-1004716943"
+date: "2022/4/17"
+header-includes:
+    - \usepackage{setspace}\doublespacing
+output:
+  pdf_document: default
+  html_document: default
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+# Abstract 
+
+Today we are in the third year of COVID-19, many people were killed by the pandemic. That bears a question. Will the death rate of COVID-19 decrease in the future so that we can return to normal lives? This report analyses the similar historical events of Hong Kong flu which also caused a sudden increase in the death rate of pneumonia and influenza as severe cases of COVID-19 are often accompanied by pneumonia. We build a SARIMA model on this data to forecast the future periods of the death rate after the shock of the Hong Kong flu by assuming the time series is a stationary process. In addition, we apply Spectral Analysis to illustrate the dominant frequency of the data. Our results show that the negative shock of the Hong Kong flu on the death rate tends to weaken over time. Also, the monthly death rate of pneumonia and influenza has peaked in the yearly cycle; and the rate does not depend on the rate of the previous month. We conclude that the death rate of pneumonia and influenza will return to normal after the shock of COVID-19.
+
+Keywords: Seasonal trend, Time series, Spectral Analysis, COVID-19, Astsa, Pendemic, Statistical Analysis  
+
+
+# Intorduction
+
+This data collects monthly pneumonia and influenza deaths per 10,000 people in the US from 1968 to 1978. During the COVID-19 period, many people were killed by COVID-19 pneumonia. Moreover, there are about 15% of cases are severe[1] and it is hard to know when the pandemic will end. Thus, we consider the analysis of monthly pneumonia and influenza deaths in the U.S from 1968 to 1978. The data has 132 observations and is collected by the *Astsa* library [2]. By researching what happened in 1968, we found that there was a flu pandemic called Hong Kong flue which remained as the seasonal flu later [3]. We can see the similarity between COVID-19 and Hong Kong flu. The purpose of this report is to generate some insight into today's situation from similar historical events. Overall, the impact of the shock by COVID-19 on the death rate of pneumonia and influenza will be Slowly reduced over time. It will be more likely to be remaining as seasonal flu in the future.
+
+
+
+
+# Statistical Methods 
+
+
+```{r,echo=FALSE}
+## install.packages("astsa")
+## load library
+library(astsa)
+
+## load data
+data(flu)
+
+
+```
+
+
+## Data analyze
+
+```{r,echo=FALSE,fig.cap="plots of monthly pneumonia and influenza deaths rate over time"}
+# plot the time series
+x = flu
+dx=diff(x);ddx=diff(dx,12)
+plot.ts(x,main="")
+```
+
+```{r,echo=FALSE, fig.width=3, fig.height=3, fig.cap="Plots of regular differenced and seasonal differenced data grouped by month"}
+
+## see seasonal trend
+monthplot(dx, ylab="regular differenced data", xlab="month")
+```
+
+
+```{r,echo=FALSE, fig.width=3, fig.height=3, fig.cap="Plots of regular differenced and seasonal differenced data grouped by month"}
+monthplot(ddx, ylab="seasonal differenced data", xlab="month")
+```
+
+\newpage
+
+From our original data, we can see the trend and non-constant mean (Figure 1). Therefore, we first differenced data to remove trends and stabilized the mean. However, the differenced data still show trends in seasonal (figure 2). In other words, we expected to see the same variation in the same month of each year recorded. So, we further applied a twelfth-order difference on differenced data. Finally, we constructed the data with a constant mean around zero and without a seasonal trends (figure 3).
+
+
+## ACF/PCAF Analyze
+
+```{r, echo=FALSE, fig.cap="Sample ACF/PACF of regular and seasonal differenced death rate."}
+## plot acf and pacf
+acf <- acf2(ddx, main="")
+```
+
+
+Figure 4 is the ACF/PACF of original data after being regular and seasonal differenced *ddx*($\nabla_{12} \nabla{x_t}$).
+
+From previous steps, we conclude that d=1 and D=1 in our SARIMA model. Next, we are going to propose two models depending on ACF/PACF.
+
+According to the figure, the ACF tails off at lag 1s, 2s, 3s,.... (s=12) and PACF cuts off at lag 1s. Also, the ACF cuts off at lag 2, and the PACF tails off after lag 2. This suggests that $p=0,q=2,P=1,Q=0$.
+
+It also appears that at the seasons, the ACF cuts off at lag 1s, and PACF tails off. These results imply the model SMA(1) $(Q=1, P=0)$.
+
+In conclusion, we propose two model $SARIMA(0,1,2)\times(1,1,0)_{12}$ (model 1 )and $SARIMA(0,1,2)\times(0,1,1)_{12}$ (model 2).
+
+
+
+# Results
+
+## Interpretation of Results
+```{r, echo=FALSE, warnin=FALSE}
+# fit first proposed model SARMA(0,1,2)(1,1,0)
+model1 = sarima(x, 0,1,2, 1,1,0,12, details=FALSE)
+knitr::kable(model1$ttable,caption = "Estimates of Model 1")
+```
+
+
+The estimated $SARIMA(0,1,2)\times(1,1,0)_{12}$ model is 
+$$
+\hat{x_t} = \hat{w_t} -0.2743 \hat{w}_{t-1}-0.7257\hat{w}_{t-2}-0.3297\hat{x}_{t-12}
+$$
+The results of this model show that the future death rate is negatively related to the noise of the previous two months. Also, it depends negatively on the death rate in the same month last year. From a more practical perspective, the death rate is decreasing from year to year with 0.3297 percent point if all the noise remains the same as last year. Also, all the estimates are statistically significant with a p-value less than 0.05. In other words, we have strong evidence against the coefficient is equal to zero. We can keep all coefficients in this model.
+
+```{r,echo=FALSE}
+# second proposed model SARMA(0,1,2)(0,1,1)
+model2 = sarima(x, 0,1,2, 0,1,1,12, details=FALSE)
+knitr::kable(model2$ttable,caption = "Estimates of Model 2")
+```
+The estimated $SARIMA(0,1,2)\times(0,1,1)_{12}$ model is 
+$$
+\hat{x_t} = \hat{w_t} -0.2680 \hat{w}_{t-1}-0.7182\hat{w}_{t-2}-0.6427\hat{w}_{t-12} +\\
+0.2680\times 0.6427\hat{w}_{t-13} + 0.7182\times0.6427\hat{w}_{t-14}
+$$
+
+Similarly, the future death rate in this model is also negatively related to the noise of the last two months. In contrast, the death rate further depends on the same month last year and the two months before it. Since those noises are random variables at mean 0, the interpretation is not as practical as the previous model. Moreover, the estimate of MA1 is not statistically significant. 
+
+## Diagnosis
+
+
+```{r, results='hide', echo=FALSE, fig.cap="Diagnosis for model 1",fig.height=3}
+# diagnoisis for model 1 and 2
+mod1<-sarima(x, 0,1,2, 1,1,0,12)
+mod2<-sarima(x, 0,1,2, 0,1,1,12)
+```
+
+For both models, there are no obvious patterns from the inspection of the standard residuals. Also, the normal Q-Q plot of Residuals shows a similar trend in both models with several outliers on two tails.
+However, there are three spikes in ACF of Residuals for model 1 while there is only one for model 2. More importantly, for model 1, almost $1/3$ of the p-values for Ljung-Box statistics are at or below the significant level. This suggests that some residuals are dependent. The issue is not existing in model 2. Overall, model 2 fits our data better than model 1.
+
+
+
+## Model Selection
+
+Next, we compare AIC/AICc/BIC to furthec check which model is the most appropriate model.
+
+Table 3: AIC/AICc/BIC of proposed models
+
+Model|AIC|AICc|BIC
+----|----|----|----
+$SARIMA(0,1,2)\times(1,1,0)_{12}$|-2.289264|-2.28751|-2.195848
+$SARIMA(0,1,2)\times(0,1,1)_{12}$|-2.38975|-2.387996|-2.296334
+
+AIC/AICc/BIC are all smaller in model 2 than model 1. This suggests that $SARIMA(0,1,2)\times(0,1,1)_{12}$ is better.
+
+Additionally, since ma1 is not statistically significant in $SARIMA(0,1,2)\times(0,1,1)_{12}$. We try two more models which are $SARIMA(0,1,1)\times(0,1,1)_{12}$ (model 3) and $SARIMA(1,1,2)\times(0,1,1)_{12}$ (model 4). 
+
+According to the diagnoses, the residuals don't seem independent according to the Ljung-Box statistics because all p-values are below the significance level. At the same time, the diagnosis of model 4 is similar to model 2. Therefore, model 4 is better than model 3.
+
+
+Table 4: AIC/AICc/BIC of Model 2 and Model 4
+
+Model|AIC|AICc|BIC
+----|----|----|----
+$SARIMA(0,1,2)\times(0,1,1)_{12}$|-2.38975|-2.387996|-2.296334
+$SARIMA(1,1,2)\times(0,1,1)_{12}$|-2.376624|-2.373675|-2.259854
+
+Model 4 also has one insignificant parameter (ar1). Therefore, model 4 is not strictly better than model 2. Despite that, the AIC/AICc/BIC of model 2 is smaller than model 4. In conclusion, model 2 ($SARIMA(0,1,2)\times(0,1,1)_{12}$) fit our data better than all other models. 
+
+\newpage
+
+## Forecast
+
+
+```{r, echo=FALSE, warning=FALSE,fig.cap='Plots Predicted value and its 95% prediction intervals in next 10-time periods from model 2', fig.height=3}
+# forecast
+pred = sarima.for(x,10,0,1,2,0,1,1,12)
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+# Confident interval at 95%
+upper = pred$pred+qnorm(0.975)*pred$se
+lower = pred$pred-qnorm(0.975)*pred$se
+
+# dataframe
+knitr::kable(data.frame(pred$pred,upper,lower), col.names = c("Predicted value","Upper bound","Lower bound"), caption = "Predicted value and its 95% prediction intervals in next 10-time periods from model 2", row.names = c(1:10))
+```
+
+The results of forecasting is shown above. From figure 5, the death rate will decrease from the pick in the first 5 months and increase in the second half of the forecast period. It is pleasurable because Spring is the flu season. With more people get caught by flu, the death rate tend to be increasing. Moreover, the lowest death rate within the year is the lower than previous rate. 
+
+
+
+## Spectral Analysis 
+
+```{r, echo=FALSE, fig.cap='Spectrum density of each frequency', fig.height=3,fig.width=3}
+# spectral analysis
+period <- mvspec(x, log="no", main="")
+```
+
+
+```{r, echo=FALSE}
+# present first three predominant periods
+knitr::kable(period$details[order(period$details[,3],decreasing=TRUE)[1:3],], caption="First three perdominant periods")
+
+# confidence interval
+P2 = period$details[order(period$details[,3],decreasing=TRUE)[1:3],]
+flu.u1 = 2*P2[1,3]/qchisq(.025,2)
+flu.l1 = 2*P2[1,3]/qchisq(.975,2)
+flu.u2 = 2*P2[2,3]/qchisq(.025,2)
+flu.l2 = 2*P2[2,3]/qchisq(.975,2)
+flu.u3 = 2*P2[3,3]/qchisq(.025,2)
+flu.l3 = 2*P2[3,3]/qchisq(.975,2)
+##Create a data frame for the CIs
+Result <- data.frame(
+Dominant.Freq=c(P2[1,1],P2[2,1],P2[3,1]), Spec=c(P2[1,3],P2[2,3],
+P2[3,3]),
+Lower=c(flu.l1,flu.l2,flu.l3),
+Upper=c(flu.u1,flu.u2,flu.u3))
+
+knitr::kable(Result, caption="Confidence intervals for the identified periods")
+```
+
+According to the spectral summary in figure 7, there is a very clear peak at a frequency of 1. In other words, we notice a narrow-band peak in the yearly cycle. Also, the second dominant frequency is around the frequency of 2. There is a lower peak at a higher frequency which is a half-year cycle. However, we cannot establish the significance of the first three peaks because the periodogram ordinate of each frequency lies in the confidence intervals of the other two peaks.
+
+
+
+# Discussion
+
+Overall, our model shows that the future death rate is negatively related to the noise of the last two months, the same month last year, and two months before it. The forecast suggests that the lowest death rate in the future will be the lowest of all previous years. We conclude that the effects of the immediate increase in death rate trend caused by Hong Kong flu are weakened from year to year. The variation of the death rate tends to depend on seasons. It reaches a peak in the yearly cycle. From the insight of this report, the impact of COVID-19 on pneumonia and influenza death rate will keep decreasing in the future. It is also possible that COVID-19 will become the seasonal flu as Hong Kong flu.
+
+Although, we tried to find the best model to fit our data. The final model we used for the forecast still had limitations. There were several outliers on two tails of the Normal Q-Q Plot of Residuals. It means there were departures from the normality assumption. It is possible that the process of this data is not stationary which means a SARIMA model is not appropriate. Therefore, other mathematical models could be a better fit. Also, we cannot establish the significance of the first three peaks. This means our data does not appear significant periodic pattern.
+
+
+
+
+\
+\
+\
+\
+\
+\
+\
+\
+
+
+
+
+
+All analysis for this report was programmed using `R version 4.0.5`[4] with packages *knitr*[5] and *astsa*[2]
+
+
+\newpage
+
+# Reference
+
+[1] Ratini, M. (2022, January 25). Pneumonia and coronavirus: Does everyone with covid-19 get pneumonia? WebMD. Retrieved April 9, 2022, from https://www.webmd.com/lung/covid-and-pneumonia#1 
+
+[2]  David Stoffer (2021). astsa: Applied Statistical Time Series Analysis. R package version 1.14.
+  https://CRAN.R-project.org/package=astsa
+
+[3] Wikimedia Foundation. (2022, March 8). Hong Kong flu. Wikipedia. Retrieved April 9, 2022, from https://en.wikipedia.org/wiki/Hong_Kong_flu 
+
+[4]   R Core Team (2021). R: A language and environment for statistical computing. R Foundation for Statistical
+  Computing, Vienna, Austria. URL https://www.R-project.org/.
+
+[5]Yihui Xie (2021). knitr: A General-Purpose Package for Dynamic Report Generation in R. R package version
+  1.36.
+
+
+
+
